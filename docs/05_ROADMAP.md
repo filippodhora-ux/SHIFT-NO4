@@ -10,7 +10,7 @@ Stavy: `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `DONE`.
 |---|---|---|
 | M0 | Repository baseline | DONE |
 | M1 | Headless plant simulation | DONE |
-| M2 | Equipment, sensors a referenční failure | NOT STARTED |
+| M2 | Equipment, sensors a referenční failure | DONE |
 | M3 | Lokální playable slice | NOT STARTED |
 | M4 | Dvouhráčový host/client | NOT STARTED |
 | M5 | Dvě směny, persistence a ekonomika | NOT STARTED |

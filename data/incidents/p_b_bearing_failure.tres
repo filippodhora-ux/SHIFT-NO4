@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="BearingFailureDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://incidents/bearing_failure_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+failure_id = &"P-B-BEARING-DEGRADATION"
+target_device_id = &"P-B"
+base_wear_per_sim_hour = 0.014
+idle_load_multiplier = 0.05
+normal_load_multiplier = 0.75
+overload_load_multiplier = 5.0
+load_curve_exponent = 1.5
+normal_load_ratio = 0.75
+maximum_temperature_multiplier = 2.0
+maximum_stress_multiplier = 2.5
+existing_damage_extra_multiplier = 1.5
+stopped_wear_factor = 0.02
+healthy_min_condition = 0.97
+latent_min_condition = 0.9
+worn_min_condition = 0.72
+degraded_min_condition = 0.45
+failing_min_condition = 0.12
+healthy_vibration_units = 0.1
+load_vibration_units = 0.15
+failed_vibration_units = 1.2
+healthy_bearing_temperature_c = 45.0
+load_temperature_rise_c = 10.0
+failed_temperature_rise_c = 75.0
+coolant_temperature_coupling = 0.2
+idle_current_proxy = 0.35
+load_current_proxy = 0.45
+failed_current_proxy = 0.9

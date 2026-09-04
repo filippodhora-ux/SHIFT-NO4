@@ -1,6 +1,18 @@
-[gd_resource type="Resource" script_class="PlantTuning" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="PlantTuning" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://simulation/plant_tuning.gd" id="1_tuning"]
+[ext_resource type="Resource" path="res://data/equipment/pump_a_definition.tres" id="2_pump_a"]
+[ext_resource type="Resource" path="res://data/equipment/pump_b_definition.tres" id="3_pump_b"]
+[ext_resource type="Resource" path="res://data/equipment/valve_a_definition.tres" id="4_valve_a"]
+[ext_resource type="Resource" path="res://data/equipment/valve_b_definition.tres" id="5_valve_b"]
+[ext_resource type="Resource" path="res://data/equipment/breaker_a_definition.tres" id="6_breaker_a"]
+[ext_resource type="Resource" path="res://data/equipment/local_gauge_definition.tres" id="7_gauge"]
+[ext_resource type="Resource" path="res://data/incidents/p_b_bearing_failure.tres" id="8_bearing"]
+[ext_resource type="Resource" path="res://data/incidents/alarm_p_b_vibration_high.tres" id="9_alarm_vibration"]
+[ext_resource type="Resource" path="res://data/incidents/alarm_p_b_temperature_high.tres" id="10_alarm_temperature"]
+[ext_resource type="Resource" path="res://data/incidents/alarm_p_b_current_high.tres" id="11_alarm_current"]
+[ext_resource type="Resource" path="res://data/incidents/alarm_coolant_flow_low.tres" id="12_alarm_flow"]
+[ext_resource type="Resource" path="res://data/incidents/alarm_coolant_temperature_high.tres" id="13_alarm_coolant_temp"]
 
 [resource]
 script = ExtResource("1_tuning")
@@ -9,17 +21,22 @@ max_catch_up_steps = 8
 simulated_hours_per_real_second = 0.01
 minimum_requested_load = 0.0
 maximum_requested_load = 1.0
+overload_plant_stress_weight = 0.15
 nominal_electrical_power_mw = 1000.0
 power_ramp_mw_per_second = 250.0
-pump_a_enabled_on_reset = true
-pump_b_enabled_on_reset = true
-pump_a_available_on_reset = true
-pump_b_available_on_reset = true
-pump_a_rated_flow_units_per_second = 60.0
-pump_b_rated_flow_units_per_second = 60.0
-pump_a_efficiency = 1.0
-pump_b_efficiency = 1.0
+pump_a_definition = ExtResource("2_pump_a")
+pump_b_definition = ExtResource("3_pump_b")
 pump_flow_ramp_units_per_second_squared = 120.0
+valve_a_definition = ExtResource("4_valve_a")
+valve_b_definition = ExtResource("5_valve_b")
+breaker_a_definition = ExtResource("6_breaker_a")
+local_gauge_definition = ExtResource("7_gauge")
+bearing_failure_definition = ExtResource("8_bearing")
+pump_vibration_alarm_rule = ExtResource("9_alarm_vibration")
+pump_temperature_alarm_rule = ExtResource("10_alarm_temperature")
+pump_current_alarm_rule = ExtResource("11_alarm_current")
+coolant_flow_alarm_rule = ExtResource("12_alarm_flow")
+coolant_temperature_alarm_rule = ExtResource("13_alarm_coolant_temp")
 nominal_thermal_demand_units = 100.0
 cooling_capacity_per_flow_unit = 1.0
 minimum_coolant_temperature_c = 20.0

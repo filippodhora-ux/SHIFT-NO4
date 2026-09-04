@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PumpDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://equipment/pump_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+definition_id = &"pump.coolant.bearing-prone"
+display_name = "Cooling Pump B"
+component_type = &"PUMP"
+rated_flow_units_per_second = 60.0
+nominal_efficiency = 1.0
+minimum_condition_efficiency_factor = 0.05
+condition_efficiency_exponent = 0.7
+degraded_below_condition = 0.72
+failing_below_condition = 0.32
+enabled_on_reset = true
+available_on_reset = true
