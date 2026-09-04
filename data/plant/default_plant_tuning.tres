@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="PlantTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://simulation/plant_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+simulation_step_seconds = 0.1
+max_catch_up_steps = 8
+simulated_hours_per_real_second = 0.01
+minimum_requested_load = 0.0
+maximum_requested_load = 1.0
+nominal_electrical_power_mw = 1000.0
+power_ramp_mw_per_second = 250.0
+pump_a_enabled_on_reset = true
+pump_b_enabled_on_reset = true
+pump_a_available_on_reset = true
+pump_b_available_on_reset = true
+pump_a_rated_flow_units_per_second = 60.0
+pump_b_rated_flow_units_per_second = 60.0
+pump_a_efficiency = 1.0
+pump_b_efficiency = 1.0
+pump_flow_ramp_units_per_second_squared = 120.0
+nominal_thermal_demand_units = 100.0
+cooling_capacity_per_flow_unit = 1.0
+minimum_coolant_temperature_c = 20.0
+nominal_coolant_temperature_c = 60.0
+maximum_coolant_temperature_c = 180.0
+temperature_rise_at_full_deficit_c = 100.0
+coolant_heating_rate_c_per_second = 5.0
+coolant_cooling_rate_c_per_second = 2.5
+cooling_deficit_stress_weight = 0.75
+temperature_stress_weight = 0.5
+stress_rise_per_second = 0.2
+stress_recovery_per_second = 0.1
+temperature_derate_start_c = 80.0
+minimum_temperature_output_factor = 0.25
+minimum_stress_output_factor = 0.1
+steam_response_per_second = 0.5
