@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AlarmRuleDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://incidents/alarm_rule_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+alarm_rule_id = &"COOLANT-TEMPERATURE-HIGH"
+message_key = &"COOLANT TEMP HIGH"
+source_device_id = &"COOLANT-LOOP"
+sensor_id = &"S-COOLANT-TEMP"
+direction = 0
+priority = 2
+activate_threshold = 85.0
+clear_threshold = 80.0

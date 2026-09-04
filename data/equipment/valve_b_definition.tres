@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ComponentDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://equipment/component_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+definition_id = &"valve.coolant.regulating"
+display_name = "Cooling Valve B"
+component_type = &"VALVE"

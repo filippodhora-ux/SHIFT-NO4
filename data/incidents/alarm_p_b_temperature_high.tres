@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AlarmRuleDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://incidents/alarm_rule_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+alarm_rule_id = &"P-B-TEMPERATURE-HIGH"
+message_key = &"P-B TEMPERATURE HIGH"
+source_device_id = &"P-B"
+sensor_id = &"S-P-B-TEMP"
+direction = 0
+priority = 1
+activate_threshold = 72.0
+clear_threshold = 68.0

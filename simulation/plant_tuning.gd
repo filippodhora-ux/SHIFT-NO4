@@ -9,21 +9,32 @@ extends Resource
 @export_category("Load")
 @export_range(0.0, 1.0, 0.01) var minimum_requested_load: float = 0.0
 @export_range(0.0, 2.0, 0.01, "or_greater") var maximum_requested_load: float = 1.0
+@export_range(0.0, 1.0, 0.01) var overload_plant_stress_weight: float = 0.15
 
 @export_category("Electrical output")
 @export_range(0.0, 10000.0, 1.0, "or_greater", "suffix:MW") var nominal_electrical_power_mw: float = 1000.0
 @export_range(0.001, 100000.0, 1.0, "or_greater", "suffix:MW/s") var power_ramp_mw_per_second: float = 250.0
 
 @export_category("Cooling pumps")
-@export var pump_a_enabled_on_reset: bool = true
-@export var pump_b_enabled_on_reset: bool = true
-@export var pump_a_available_on_reset: bool = true
-@export var pump_b_available_on_reset: bool = true
-@export_range(0.0, 1000.0, 0.1, "or_greater", "suffix:flow/s") var pump_a_rated_flow_units_per_second: float = 60.0
-@export_range(0.0, 1000.0, 0.1, "or_greater", "suffix:flow/s") var pump_b_rated_flow_units_per_second: float = 60.0
-@export_range(0.0, 1.0, 0.01) var pump_a_efficiency: float = 1.0
-@export_range(0.0, 1.0, 0.01) var pump_b_efficiency: float = 1.0
+@export var pump_a_definition: PumpDefinition
+@export var pump_b_definition: PumpDefinition
 @export_range(0.001, 10000.0, 0.1, "or_greater", "suffix:flow/s²") var pump_flow_ramp_units_per_second_squared: float = 120.0
+
+@export_category("MVP equipment")
+@export var valve_a_definition: ComponentDefinition
+@export var valve_b_definition: ComponentDefinition
+@export var breaker_a_definition: ComponentDefinition
+@export var local_gauge_definition: ComponentDefinition
+
+@export_category("P-B bearing incident")
+@export var bearing_failure_definition: BearingFailureDefinition
+
+@export_category("Alarm rules")
+@export var pump_vibration_alarm_rule: AlarmRuleDefinition
+@export var pump_temperature_alarm_rule: AlarmRuleDefinition
+@export var pump_current_alarm_rule: AlarmRuleDefinition
+@export var coolant_flow_alarm_rule: AlarmRuleDefinition
+@export var coolant_temperature_alarm_rule: AlarmRuleDefinition
 
 @export_category("Thermal and cooling")
 @export_range(0.001, 10000.0, 0.1, "or_greater", "suffix:thermal units") var nominal_thermal_demand_units: float = 100.0
@@ -61,18 +72,14 @@ func validation_errors() -> PackedStringArray:
 		errors.append("minimum_requested_load must be finite and non-negative")
 	if not _is_finite_number(maximum_requested_load) or maximum_requested_load < minimum_requested_load:
 		errors.append("maximum_requested_load must be finite and at least minimum_requested_load")
+	if not _is_normalized(overload_plant_stress_weight):
+		errors.append("overload_plant_stress_weight must be finite and normalized")
 	if not _is_finite_number(nominal_electrical_power_mw) or nominal_electrical_power_mw < 0.0:
 		errors.append("nominal_electrical_power_mw must be finite and non-negative")
 	if not _is_finite_positive(power_ramp_mw_per_second):
 		errors.append("power_ramp_mw_per_second must be finite and greater than zero")
-	if not _is_finite_non_negative(pump_a_rated_flow_units_per_second):
-		errors.append("pump_a_rated_flow_units_per_second must be finite and non-negative")
-	if not _is_finite_non_negative(pump_b_rated_flow_units_per_second):
-		errors.append("pump_b_rated_flow_units_per_second must be finite and non-negative")
-	if not _is_normalized(pump_a_efficiency):
-		errors.append("pump_a_efficiency must be finite and between zero and one")
-	if not _is_normalized(pump_b_efficiency):
-		errors.append("pump_b_efficiency must be finite and between zero and one")
+	_validate_component_definitions(errors)
+	_validate_incident_definitions(errors)
 	if not _is_finite_positive(pump_flow_ramp_units_per_second_squared):
 		errors.append("pump_flow_ramp_units_per_second_squared must be finite and greater than zero")
 	if not _is_finite_positive(nominal_thermal_demand_units):
@@ -105,6 +112,48 @@ func validation_errors() -> PackedStringArray:
 		errors.append("steam_response_per_second must be finite and greater than zero")
 
 	return errors
+
+
+func get_alarm_rules() -> Array[AlarmRuleDefinition]:
+	return [
+		pump_vibration_alarm_rule,
+		pump_temperature_alarm_rule,
+		pump_current_alarm_rule,
+		coolant_flow_alarm_rule,
+		coolant_temperature_alarm_rule,
+	]
+
+
+func _validate_component_definitions(errors: PackedStringArray) -> void:
+	var definitions: Array[ComponentDefinition] = [
+		pump_a_definition,
+		pump_b_definition,
+		valve_a_definition,
+		valve_b_definition,
+		breaker_a_definition,
+		local_gauge_definition,
+	]
+	for definition in definitions:
+		if definition == null:
+			errors.append("all MVP component definitions must be assigned")
+			continue
+		for definition_error in definition.validation_errors():
+			errors.append("%s: %s" % [definition.definition_id, definition_error])
+
+
+func _validate_incident_definitions(errors: PackedStringArray) -> void:
+	if bearing_failure_definition == null:
+		errors.append("bearing_failure_definition must be assigned")
+	else:
+		for failure_error in bearing_failure_definition.validation_errors():
+			errors.append("bearing failure: %s" % failure_error)
+
+	for rule in get_alarm_rules():
+		if rule == null:
+			errors.append("all M2 alarm rules must be assigned")
+			continue
+		for rule_error in rule.validation_errors():
+			errors.append("%s: %s" % [rule.alarm_rule_id, rule_error])
 
 
 func _is_finite_positive(value: float) -> bool:
