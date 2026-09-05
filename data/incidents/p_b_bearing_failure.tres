@@ -31,3 +31,5 @@ coolant_temperature_coupling = 0.2
 idle_current_proxy = 0.35
 load_current_proxy = 0.45
 failed_current_proxy = 0.9
+service_duration_seconds = 3.0
+service_condition_restore = 0.35

@@ -11,7 +11,7 @@ Stavy: `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `DONE`.
 | M0 | Repository baseline | DONE |
 | M1 | Headless plant simulation | DONE |
 | M2 | Equipment, sensors a referenční failure | DONE |
-| M3 | Lokální playable slice | NOT STARTED |
+| M3 | Lokální playable slice | DONE |
 | M4 | Dvouhráčový host/client | NOT STARTED |
 | M5 | Dvě směny, persistence a ekonomika | NOT STARTED |
 | M6 | MVP validace a balance | NOT STARTED |
@@ -96,6 +96,8 @@ Ověřit `load → wear → performance → symptoms` a oddělení skutečné a 
 - projdou AC-003, AC-005 až AC-012, AC-016, AC-017 a AC-023.
 
 ## 5. M3 — Lokální playable slice
+
+Stav: `DONE` (2026-09-05). Lokální renderer smoke, 32 headless testů a role-specific scénář ověřují exit kritéria; M4 zůstává `NOT STARTED`.
 
 ### Cíl
 

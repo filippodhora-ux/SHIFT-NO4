@@ -359,3 +359,82 @@ Akcelerovaný timeline test zachytil všechny fáze v pořadí `HEALTHY@10`, `LA
 | AC-023 | PASS | `deterministic_replay_matches_snapshot` porovnává celý M2 snapshot a hash. |
 
 M2 záměrně neobsahuje 3D/UI, role, multiplayer, persistence, ekonomiku ani servis spotřebním předmětem. BR-A reset v M2 nemá fuse/prerequisite; takové pravidlo je volitelné pro tento řez a souvisí až s fyzickou interakcí a ekonomikou pozdějších milníků.
+
+## M3 — lokální playable slice
+
+Roadmap status: `DONE` (2026-09-05). M3 používá jednu lokální autoritu a nezahajuje ENet, RPC, lobby, persistence, ekonomiku ani jinou práci M4/M5.
+
+### Spuštění a ovládání
+
+Projekt spusť přes GUI příkaz z úvodu dokumentu:
+
+```powershell
+& $godotGui --path $projectPath
+```
+
+| Vstup | Lokální funkce |
+|---|---|
+| `F1` | Operator role; celoplošný filtrovaný telemetrický panel. |
+| `F2` | Technician role; first-person pohyb a field HUD. |
+| `W/A/S/D`, myš | Pohyb a rozhlížení Technika. |
+| `E` | Inspect/read zaměřeného zařízení. |
+| `F` | Kontextový start/stop, open/close nebo breaker open/reset. |
+| `R` | Zařízení-specifický servis P-B po jejím zastavení. |
+| `Escape` / klik | Uvolnit / znovu zachytit myš. |
+| `F3` | Jasně oddělený developer authoritative overlay. |
+| `F4` | Debug: nastaví P-B do `DEGRADED` a load na 100 % pro rychlý test. |
+| `F5` | Debug: přepne V-A actual `CLOSED` / reported `OPEN` mismatch. |
+| `F6` | Vrátí Technika na začátek trasy. |
+
+Mapa obsahuje pouze velín, krátkou chodbu a field/pump room. Ve světě jsou presentery `P-A`, `P-B`, `V-A`, `V-B`, `BR-A` a `PG-A`; všechny čtou stav z jedné `PlantSimulation` a interakce posílají její zařízení-specifické commandy.
+
+Operator view model zveřejňuje requested load, exportované MW, MWh, centrální reported flow/temperature, plant stress, reportované equipment stavy a symptomatické alarmy. Neobsahuje condition, wear, failure ID/fázi, actual valve position ani PG-A lokální kanál. Technician HUD neobsahuje globální MW/MWh/stress dashboard ani Operator alarm panel; lokální inspect vrací kvalitativní text a titulkovaný mechanický projev.
+
+P-B `service_bearing` je autoritativní časovaná akce. Za chodu vrací `PUMP_MUST_BE_STOPPED`, během rozpracovaného servisu `SERVICE_IN_PROGRESS`. Délka `3.0 s` a částečné obnovení condition `0.35` jsou v `data/incidents/p_b_bearing_failure.tres`. Po dokončení lze P-B znovu spustit a vyšší condition se projeví v efficiency, flow a následné Operator telemetrii.
+
+### Automatické a renderer ověření
+
+Parser a všech 24 zachovaných M1/M2 plus 8 nových M3 testů:
+
+```powershell
+& $godotConsole --headless --editor --path $projectPath --quit
+& $godotConsole --headless --path $projectPath --script 'res://tests/run_tests.gd'
+```
+
+Očekávaný souhrn: `[TEST] SUMMARY passed=32 failed=0`.
+
+Reprodukovatelný lokální renderer smoke otevře reálný OpenGL Compatibility renderer, simuluje F1/F2 role input a Technician movement, ověří lying V-A sensor, P-B inspect/stop/service/restart a návrat Operator telemetrie. Snímky uloží do ignorovaného `.godot/m3_visual_smoke/`:
+
+```powershell
+& $godotConsole --path $projectPath --script 'res://tests/local_playable_smoke.gd'
+```
+
+Očekávaný souhrn: `[SMOKE] PASS local role swap, lying sensor, inspect, stop, service, restart and operator response`.
+
+### Manuální lokální smoke
+
+1. Spusť main scene; začíná Operator role a jedna živá simulace.
+2. Posuň `REQUESTED LOAD` na 100 % a sleduj MW/MWh a krátkou historii flow/temperature/stress.
+3. Pro rychlý interní průchod stiskni `F4`; bez něj P-B degraduje přirozeně při trvalém high loadu.
+4. Ověř symptomatický P-B alarm a acknowledge; příčina zůstává aktivní.
+5. Stiskni `F2`, projdi přes označenou chodbu do field/pump room a zaměř `P-B`.
+6. Stiskni `E`; inspect musí přidat kvalitativní vibraci/teplotu a textový ekvivalent mechanického zvuku bez failure ID.
+7. Stiskni `F` pro zastavení P-B. Teprve potom prompt nabídne `R Service pump assembly`.
+8. Spusť servis, sleduj lokální odpočet, po dokončení P-B znovu spusť a stiskni `F1`.
+9. Potvrď změnu reportovaného stavu, flow, teploty/stress a alarmové historie v Operator panelu.
+10. Stiskni `F5`: Operator vidí `V-A REPORTED OPEN`.
+11. Přepni na Technika, dojdi k `V-A`; svět i inspect musí ukázat `PHYSICAL: CLOSED` a nabídnout `Open`.
+12. `F3` smí ukázat actual/reported hodnoty a failure stav pouze v červeně označeném developer overlay, nikoli v běžném role UI.
+
+### M3 akceptace
+
+| ID | Stav | Důkaz |
+|---|---|---|
+| AC-013 | PASS | `operator_view_filters_hidden_authoritative_state` + Operator renderer capture. |
+| AC-014 | PASS | `technician_view_filters_global_operator_state` + field HUD renderer capture. |
+| AC-015 | PASS | `role_views_split_global_and_local_bearing_symptoms`. |
+| AC-016 | PASS | Zachované alarm unit testy + `operator_acknowledge_keeps_physical_cause`. |
+| AC-017 | PASS | `world_model_prompt_operator_and_debug_share_device_ids` kontroluje model, scénu, prompt, Operator relevantní IDs a debug snapshot. PG-A záměrně není v Operator role payloadu. |
+| AC-018 | PASS | `technician_stop_updates_authority_flow_and_operator_view`, service integration a renderer smoke. |
+
+Starších 24 M1/M2 testů zůstává PASS. M3 známé omezení je záměrně placeholder vizuál bez finálního audia; význam pumpy je současně vyjádřen textem, stavem, barvou a vibrací. Další jediný milník je M4 — dvouhráčový host/client; nebyl zahájen.

@@ -1,0 +1,51 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://presentation/world_devices/world_device_presenter.gd" id="1_script"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(1.6, 1.5, 1.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape_body"]
+size = Vector3(1.6, 1.5, 1.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_indicator"]
+size = Vector3(0.12, 0.75, 0.12)
+
+[node name="WorldDevicePresenter" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 0.75, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="Indicator" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 0.95, 0.64)
+mesh = SubResource("BoxMesh_indicator")
+
+[node name="InteractionBody" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionBody"]
+position = Vector3(0, 0.75, 0)
+shape = SubResource("BoxShape_body")
+
+[node name="IdLabel" type="Label3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 2.05, 0.66)
+modulate = Color(0.86, 0.94, 0.82, 1)
+outline_modulate = Color(0.02, 0.03, 0.02, 1)
+outline_size = 8
+font_size = 32
+text = "DEVICE\nDisplay name"
+horizontal_alignment = 1
+
+[node name="StateLabel" type="Label3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 1.62, 0.66)
+modulate = Color(1, 0.84, 0.38, 1)
+outline_modulate = Color(0.02, 0.03, 0.02, 1)
+outline_size = 8
+font_size = 23
+text = "STATE"
+horizontal_alignment = 1

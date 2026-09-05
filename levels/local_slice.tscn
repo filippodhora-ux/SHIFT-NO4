@@ -1,0 +1,169 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="PackedScene" path="res://presentation/world_devices/world_device_presenter.tscn" id="1_device"]
+
+[sub_resource type="StandardMaterial3D" id="Material_floor"]
+albedo_color = Color(0.13, 0.16, 0.14, 1)
+metallic = 0.25
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="Material_wall"]
+albedo_color = Color(0.24, 0.27, 0.23, 1)
+metallic = 0.18
+roughness = 0.76
+
+[sub_resource type="BoxMesh" id="Mesh_control_floor"]
+material = SubResource("Material_floor")
+size = Vector3(10, 0.2, 8)
+
+[sub_resource type="BoxShape3D" id="Shape_control_floor"]
+size = Vector3(10, 0.2, 8)
+
+[sub_resource type="BoxMesh" id="Mesh_corridor_floor"]
+material = SubResource("Material_floor")
+size = Vector3(3, 0.2, 6)
+
+[sub_resource type="BoxShape3D" id="Shape_corridor_floor"]
+size = Vector3(3, 0.2, 6)
+
+[sub_resource type="BoxMesh" id="Mesh_wall_long"]
+material = SubResource("Material_wall")
+size = Vector3(0.24, 3, 8)
+
+[sub_resource type="BoxShape3D" id="Shape_wall_long"]
+size = Vector3(0.24, 3, 8)
+
+[sub_resource type="BoxMesh" id="Mesh_wall_short"]
+material = SubResource("Material_wall")
+size = Vector3(3, 3, 0.24)
+
+[sub_resource type="BoxShape3D" id="Shape_wall_short"]
+size = Vector3(3, 3, 0.24)
+
+[node name="LocalSlice" type="Node3D"]
+
+[node name="ControlFloor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.1, 5)
+
+[node name="Mesh" type="MeshInstance3D" parent="ControlFloor"]
+mesh = SubResource("Mesh_control_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="ControlFloor"]
+shape = SubResource("Shape_control_floor")
+
+[node name="FieldFloor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.1, -8)
+
+[node name="Mesh" type="MeshInstance3D" parent="FieldFloor"]
+mesh = SubResource("Mesh_control_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="FieldFloor"]
+shape = SubResource("Shape_control_floor")
+
+[node name="CorridorFloor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.1, -1)
+
+[node name="Mesh" type="MeshInstance3D" parent="CorridorFloor"]
+mesh = SubResource("Mesh_corridor_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="CorridorFloor"]
+shape = SubResource("Shape_corridor_floor")
+
+[node name="CorridorLeft" type="StaticBody3D" parent="."]
+position = Vector3(-1.62, 1.5, -1)
+
+[node name="Mesh" type="MeshInstance3D" parent="CorridorLeft"]
+mesh = SubResource("Mesh_wall_long")
+
+[node name="Collision" type="CollisionShape3D" parent="CorridorLeft"]
+shape = SubResource("Shape_wall_long")
+
+[node name="CorridorRight" type="StaticBody3D" parent="."]
+position = Vector3(1.62, 1.5, -1)
+
+[node name="Mesh" type="MeshInstance3D" parent="CorridorRight"]
+mesh = SubResource("Mesh_wall_long")
+
+[node name="Collision" type="CollisionShape3D" parent="CorridorRight"]
+shape = SubResource("Shape_wall_long")
+
+[node name="ControlBackWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.5, 9.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="ControlBackWall"]
+scale = Vector3(3.35, 1, 1)
+mesh = SubResource("Mesh_wall_short")
+
+[node name="Collision" type="CollisionShape3D" parent="ControlBackWall"]
+scale = Vector3(3.35, 1, 1)
+shape = SubResource("Shape_wall_short")
+
+[node name="FieldBackWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.5, -12.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="FieldBackWall"]
+scale = Vector3(3.35, 1, 1)
+mesh = SubResource("Mesh_wall_short")
+
+[node name="Collision" type="CollisionShape3D" parent="FieldBackWall"]
+scale = Vector3(3.35, 1, 1)
+shape = SubResource("Shape_wall_short")
+
+[node name="ControlRoomSign" type="Label3D" parent="."]
+position = Vector3(0, 2.3, 1.95)
+modulate = Color(0.72, 0.9, 0.68, 1)
+outline_size = 10
+font_size = 54
+text = "CONTROL ROOM"
+
+[node name="FieldArrowSign" type="Label3D" parent="."]
+position = Vector3(0, 2.35, -3.95)
+modulate = Color(0.95, 0.74, 0.25, 1)
+outline_size = 10
+font_size = 44
+text = "↓  FIELD / PUMP ROOM  ↓"
+
+[node name="FieldRoomSign" type="Label3D" parent="."]
+position = Vector3(0, 2.45, -11.95)
+modulate = Color(0.95, 0.74, 0.25, 1)
+outline_size = 10
+font_size = 50
+text = "FIELD / PUMP ROOM"
+
+[node name="Devices" type="Node3D" parent="."]
+
+[node name="P-A" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(-3.35, 0, -6.1)
+device_id = &"P-A"
+display_name = "Cooling Pump A"
+device_type = "PUMP"
+
+[node name="P-B" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(3.35, 0, -6.1)
+device_id = &"P-B"
+display_name = "Cooling Pump B"
+device_type = "PUMP"
+
+[node name="V-A" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(-3.35, 0, -9.1)
+device_id = &"V-A"
+display_name = "Cooling Valve A"
+device_type = "VALVE"
+
+[node name="V-B" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(3.35, 0, -9.1)
+device_id = &"V-B"
+display_name = "Cooling Valve B"
+device_type = "VALVE"
+
+[node name="BR-A" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(-1.35, 0, -11)
+device_id = &"BR-A"
+display_name = "Generator Output Breaker A"
+device_type = "BREAKER"
+
+[node name="PG-A" parent="Devices" instance=ExtResource("1_device")]
+position = Vector3(1.35, 0, -11)
+device_id = &"PG-A"
+display_name = "Local Coolant Gauge A"
+device_type = "GAUGE"

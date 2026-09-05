@@ -1,0 +1,112 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://presentation/technician/technician_controller.gd" id="1_script"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_prompt"]
+bg_color = Color(0.025, 0.04, 0.035, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.82, 0.36, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="TechnicianController" type="CharacterBody3D"]
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape_player")
+
+[node name="TechnicianCamera" type="Camera3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 0.62, 0)
+current = true
+
+[node name="InteractionRay" type="RayCast3D" parent="TechnicianCamera"]
+unique_name_in_owner = true
+target_position = Vector3(0, 0, -3.25)
+collision_mask = 1
+
+[node name="TechnicianHudLayer" type="CanvasLayer" parent="."]
+
+[node name="TechnicianHud" type="Control" parent="TechnicianHudLayer"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RoleTag" type="Label" parent="TechnicianHudLayer/TechnicianHud"]
+offset_left = 24.0
+offset_top = 52.0
+offset_right = 420.0
+offset_bottom = 86.0
+theme_override_colors/font_color = Color(0.66, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 22
+text = "TECHNICIAN — FIELD LOCAL VIEW"
+
+[node name="Crosshair" type="Label" parent="TechnicianHudLayer/TechnicianHud"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -12.0
+offset_top = -18.0
+offset_right = 12.0
+offset_bottom = 18.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.92, 0.95, 0.78, 1)
+theme_override_font_sizes/font_size = 24
+text = "+"
+horizontal_alignment = 1
+
+[node name="InteractionPrompt" type="Label" parent="TechnicianHudLayer/TechnicianHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -360.0
+offset_top = -150.0
+offset_right = 360.0
+offset_bottom = -84.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/normal = SubResource("StyleBox_prompt")
+theme_override_colors/font_color = Color(0.96, 0.94, 0.72, 1)
+theme_override_font_sizes/font_size = 19
+text = "P-B — Cooling Pump B\n[E] Inspect   [F] Stop"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FieldFeedback" type="Label" parent="TechnicianHudLayer/TechnicianHud"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -58.0
+offset_right = -24.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.86, 0.92, 0.84, 1)
+theme_override_font_sizes/font_size = 17
+text = "FIELD CHANNEL — local information only"
+horizontal_alignment = 1
