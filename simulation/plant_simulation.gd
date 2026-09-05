@@ -58,6 +58,14 @@ func set_pump_available(device_id: StringName, available: bool) -> bool:
 
 
 func execute_command(target_device_id: StringName, action_id: StringName, parameters: Dictionary = {}) -> Dictionary:
+	if target_device_id == EquipmentSystem.PUMP_B_ID and action_id == &"service_bearing":
+		return _execute_bearing_service_command()
+	if (
+		target_device_id == EquipmentSystem.PUMP_B_ID
+		and action_id == &"start"
+		and _bearing_incident.service_active
+	):
+		return _command_result(false, target_device_id, action_id, "SERVICE_IN_PROGRESS")
 	var result := _equipment.execute_command(target_device_id, action_id, parameters)
 	if result["accepted"] and target_device_id == EquipmentSystem.BREAKER_A_ID:
 		_actual_power_mw = _generated_power_mw if _equipment.breaker_a.is_closed() else 0.0
@@ -112,6 +120,7 @@ func step(step_seconds: float) -> void:
 		"PlantSimulation must be advanced with the configured fixed step"
 	)
 	_update_thermal_demand()
+	_bearing_incident.update_service(_equipment.pump_b, step_seconds, _tick)
 	_update_bearing_wear(step_seconds)
 	_refresh_equipment_performance()
 	_update_pump_flows(step_seconds)
@@ -176,11 +185,22 @@ func create_operator_snapshot() -> Dictionary:
 		"requested_load": _requested_load,
 		"actual_power_mw": _actual_power_mw,
 		"produced_mwh": _produced_mwh,
+		"coolant_flow_units_per_second": _equipment.reported_coolant_flow(),
+		"coolant_temperature_c": _equipment.reported_coolant_temperature(),
+		"plant_stress": _plant_stress,
+		"equipment": _equipment.operator_equipment_snapshot(),
 		"reported_valve_positions": _equipment.reported_valve_positions(),
-		"reported_sensors": _equipment.reported_sensor_snapshot(),
+		"reported_sensors": _equipment.operator_sensor_snapshot(),
 		"breaker_position": str(_equipment.breaker_a.breaker_position),
 		"alarms": _alarm_system.get_history_snapshot(),
 	}
+
+
+func create_technician_device_view(device_id: StringName) -> Dictionary:
+	var view := _equipment.world_device_view(device_id)
+	if device_id == EquipmentSystem.PUMP_B_ID:
+		view.merge(_bearing_incident.service_state_dictionary(), true)
+	return view
 
 
 func inspect_device(device_id: StringName) -> Dictionary:
@@ -193,6 +213,40 @@ func get_alarm_history() -> Array[Dictionary]:
 
 func get_tuning() -> PlantTuning:
 	return _tuning
+
+
+func get_device_ids() -> Array[StringName]:
+	return EquipmentSystem.mvp_device_ids()
+
+
+func _execute_bearing_service_command() -> Dictionary:
+	var service_result := _bearing_incident.begin_service(_equipment.pump_b, _tick)
+	return _command_result(
+		service_result["accepted"],
+		EquipmentSystem.PUMP_B_ID,
+		&"service_bearing",
+		service_result["reason"],
+		_equipment.pump_b.revision,
+		_bearing_incident.service_state_dictionary()
+	)
+
+
+func _command_result(
+	accepted: bool,
+	target_device_id: StringName,
+	action_id: StringName,
+	reason: String,
+	revision: int = -1,
+	result: Dictionary = {}
+) -> Dictionary:
+	return {
+		"accepted": accepted,
+		"target_device_id": str(target_device_id),
+		"action_id": str(action_id),
+		"reason": reason,
+		"revision": revision,
+		"result": result.duplicate(true),
+	}
 
 
 func _update_thermal_demand() -> void:

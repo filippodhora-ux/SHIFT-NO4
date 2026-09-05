@@ -35,6 +35,10 @@ extends Resource
 @export_range(0.0, 10.0, 0.01, "or_greater") var load_current_proxy: float = 0.45
 @export_range(0.0, 10.0, 0.01, "or_greater") var failed_current_proxy: float = 0.9
 
+@export_category("Field service")
+@export_range(0.1, 60.0, 0.1, "or_greater", "suffix:s") var service_duration_seconds: float = 3.0
+@export_range(0.01, 1.0, 0.01) var service_condition_restore: float = 0.35
+
 
 func load_multiplier(requested_load: float, maximum_load: float) -> float:
 	var normalized_load := clampf(requested_load / maxf(maximum_load, 0.000001), 0.0, 1.0)
@@ -99,6 +103,10 @@ func validation_errors() -> PackedStringArray:
 		errors.append("load wear multipliers must be ordered idle <= normal <= overload")
 	if maximum_temperature_multiplier < 1.0 or maximum_stress_multiplier < 1.0:
 		errors.append("temperature and stress maximum multipliers must be at least one")
+	if service_duration_seconds <= 0.0 or is_nan(service_duration_seconds) or is_inf(service_duration_seconds):
+		errors.append("service_duration_seconds must be finite and positive")
+	if service_condition_restore <= 0.0 or service_condition_restore > 1.0 or is_nan(service_condition_restore) or is_inf(service_condition_restore):
+		errors.append("service_condition_restore must be finite and normalized above zero")
 	return errors
 
 

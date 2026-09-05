@@ -3,6 +3,10 @@ extends RefCounted
 
 var definition: BearingFailureDefinition
 var runtime: BearingFailureRuntime
+var service_active: bool = false
+var service_remaining_seconds: float = 0.0
+var service_started_tick: int = -1
+var completed_service_count: int = 0
 
 
 func _init(failure_definition: BearingFailureDefinition) -> void:
@@ -12,6 +16,46 @@ func _init(failure_definition: BearingFailureDefinition) -> void:
 
 func reset() -> void:
 	runtime.reset_failure()
+	service_active = false
+	service_remaining_seconds = 0.0
+	service_started_tick = -1
+	completed_service_count = 0
+
+
+func begin_service(pump: PumpState, tick: int) -> Dictionary:
+	if service_active:
+		return {"accepted": false, "reason": "SERVICE_IN_PROGRESS"}
+	if pump.enabled:
+		return {"accepted": false, "reason": "PUMP_MUST_BE_STOPPED"}
+	if pump.condition >= 1.0:
+		return {"accepted": false, "reason": "NO_SERVICE_NEEDED"}
+
+	service_active = true
+	service_remaining_seconds = definition.service_duration_seconds
+	service_started_tick = tick
+	return {"accepted": true, "reason": ""}
+
+
+func update_service(pump: PumpState, step_seconds: float, tick: int) -> bool:
+	if not service_active:
+		return false
+	if pump.enabled:
+		service_active = false
+		service_remaining_seconds = 0.0
+		return false
+
+	service_remaining_seconds = maxf(0.0, service_remaining_seconds - step_seconds)
+	if service_remaining_seconds > 0.0:
+		return false
+
+	pump.set_condition(minf(1.0, pump.condition + definition.service_condition_restore))
+	if pump.condition > 0.0:
+		pump.set_available(true)
+	runtime.update_from_condition(pump.condition, tick, definition)
+	service_active = false
+	service_started_tick = -1
+	completed_service_count += 1
+	return true
 
 
 func update_wear(
@@ -92,4 +136,15 @@ func is_failed() -> bool:
 
 
 func to_dictionary() -> Dictionary:
-	return runtime.to_dictionary()
+	var result := runtime.to_dictionary()
+	result.merge(service_state_dictionary(), true)
+	return result
+
+
+func service_state_dictionary() -> Dictionary:
+	return {
+		"service_active": service_active,
+		"service_remaining_seconds": service_remaining_seconds,
+		"service_duration_seconds": definition.service_duration_seconds,
+		"completed_service_count": completed_service_count,
+	}

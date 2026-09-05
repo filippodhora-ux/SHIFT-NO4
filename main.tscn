@@ -1,25 +1,71 @@
-[gd_scene format=3]
+[gd_scene load_steps=8 format=3]
 
-[node name="Main" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[ext_resource type="Script" path="res://app/local_slice_root.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://levels/local_slice.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://presentation/technician/technician_controller.tscn" id="3_technician"]
+[ext_resource type="PackedScene" path="res://presentation/operator/operator_dashboard.tscn" id="4_operator"]
+[ext_resource type="PackedScene" path="res://presentation/shared/debug_overlay.tscn" id="5_debug"]
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[sub_resource type="Environment" id="Environment_local"]
+background_mode = 1
+background_color = Color(0.018, 0.026, 0.022, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.42, 0.5, 0.42, 1)
+ambient_light_energy = 0.65
 
-[node name="Title" type="Label" parent="CenterContainer"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_role"]
+bg_color = Color(0.025, 0.04, 0.03, 0.9)
+border_width_bottom = 2
+border_color = Color(0.56, 0.72, 0.35, 0.8)
+
+[node name="LocalSliceRoot" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_local")
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-62, -28, 0)
+light_color = Color(0.82, 0.88, 0.74, 1)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="FillLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 2.4, -7)
+light_color = Color(0.88, 0.62, 0.3, 1)
+omni_range = 12.0
+light_energy = 2.2
+
+[node name="LocalSlice" parent="." instance=ExtResource("2_level")]
+
+[node name="OperatorCamera" type="Camera3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(0, 5.5, 7.5)
+rotation_degrees = Vector3(-28, 0, 0)
+current = true
+
+[node name="TechnicianController" parent="." instance=ExtResource("3_technician")]
+unique_name_in_owner = true
+position = Vector3(0, 1, 7)
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+
+[node name="OperatorDashboard" parent="UiLayer" instance=ExtResource("4_operator")]
+unique_name_in_owner = true
+
+[node name="RoleStatusPanel" type="PanelContainer" parent="UiLayer"]
+offset_right = 1280.0
+offset_bottom = 42.0
+theme_override_styles/panel = SubResource("StyleBox_role")
+
+[node name="RoleStatus" type="Label" parent="UiLayer/RoleStatusPanel"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.82, 0.7, 1)
-theme_override_font_sizes/font_size = 32
-text = "SHIFT №4\nRepository baseline"
+theme_override_colors/font_color = Color(0.84, 0.92, 0.68, 1)
+theme_override_font_sizes/font_size = 17
+text = "LOCAL ROLE: OPERATOR  |  F1 Operator  F2 Technician  F3 Developer state"
 horizontal_alignment = 1
+vertical_alignment = 1
 
+[node name="DebugOverlay" parent="UiLayer" instance=ExtResource("5_debug")]
+unique_name_in_owner = true

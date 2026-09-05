@@ -9,7 +9,7 @@ var _failed_count: int = 0
 
 
 func _initialize() -> void:
-	print("[TEST] SHIFT №4 M2 equipment, sensors and bearing incident")
+	print("[TEST] SHIFT №4 M3 local playable slice")
 
 	_run_test("zero_load_produces_zero_power_and_energy", _test_zero_load)
 	_run_test("higher_load_produces_higher_settled_power", _test_higher_load)
@@ -35,13 +35,28 @@ func _initialize() -> void:
 	_run_test("bearing_choices_have_distinct_consequences", _test_bearing_choices)
 	_run_test("device_ids_and_commands_are_specific", _test_device_ids_and_commands)
 	_run_test("m2_failure_soak_stays_finite_and_bounded", _test_m2_failure_soak)
+	_run_test("operator_view_filters_hidden_authoritative_state", _test_operator_view_filter)
+	_run_test("technician_view_filters_global_operator_state", _test_technician_view_filter)
+	_run_test("role_views_split_global_and_local_bearing_symptoms", _test_role_specific_bearing_symptoms)
+	_run_test("world_model_prompt_operator_and_debug_share_device_ids", _test_shared_device_ids)
+	_run_test("technician_stop_updates_authority_flow_and_operator_view", _test_field_action_flow)
+	_run_test("lying_sensor_splits_operator_report_and_technician_truth", _test_lying_sensor_role_split)
+	_run_test("operator_acknowledge_keeps_physical_cause", _test_operator_view_model_acknowledge)
+	_run_test("p_b_service_requires_stop_and_restores_performance", _test_service_prerequisites_and_result)
 
 	print("[TEST] SUMMARY passed=%d failed=%d" % [_passed_count, _failed_count])
 	quit(0 if _failed_count == 0 else 1)
 
 
 func _run_test(test_name: String, test_callable: Callable) -> void:
-	var failure_message := str(test_callable.call())
+	var raw_result: Variant = test_callable.call()
+	var failure_message := ""
+	if raw_result == null:
+		failure_message = "test aborted without returning a String result"
+	elif not raw_result is String:
+		failure_message = "test returned unexpected type %s" % type_string(typeof(raw_result))
+	else:
+		failure_message = raw_result
 
 	if failure_message.is_empty():
 		_passed_count += 1
@@ -720,6 +735,227 @@ func _test_m2_failure_soak() -> String:
 	return ""
 
 
+func _test_operator_view_filter() -> String:
+	var simulation := _create_simulation()
+	simulation.debug_set_component_condition(&"P-B", 0.42)
+	simulation.set_requested_load(1.0)
+	SimulationClock.new(simulation).run_ticks(20)
+	var view_model := OperatorViewModel.new(simulation)
+	view_model.refresh()
+	var view := view_model.get_view()
+	var forbidden_keys: Array[String] = [
+		"condition",
+		"wear",
+		"failure_id",
+		"phase",
+		"severity",
+		"actual_value",
+		"actual_position",
+		"local_reading",
+		"service_active",
+	]
+	var leaked_key := _find_forbidden_key(view, forbidden_keys)
+	if not leaked_key.is_empty():
+		return "operator view leaked forbidden key %s" % leaked_key
+	if not view.has("coolant_flow_units_per_second") or not view.has("equipment") or not view.has("alarms"):
+		return "operator view is missing allowed global telemetry"
+	if view["reported_sensors"].has("PG-A"):
+		return "operator view leaked the Technician-only local PG-A channel"
+	return ""
+
+
+func _test_technician_view_filter() -> String:
+	var simulation := _create_simulation()
+	var view_model := TechnicianViewModel.new(simulation)
+	var combined_views: Array = [view_model.create_hud_view()]
+	for device_id in simulation.get_device_ids():
+		combined_views.append(view_model.get_focus_view(device_id))
+	var forbidden_keys: Array[String] = [
+		"requested_load",
+		"actual_power_mw",
+		"produced_mwh",
+		"plant_stress",
+		"alarms",
+		"quota",
+		"condition",
+		"wear",
+		"failure_id",
+		"phase",
+	]
+	var leaked_key := _find_forbidden_key(combined_views, forbidden_keys)
+	if not leaked_key.is_empty():
+		return "technician HUD/focus view leaked forbidden key %s" % leaked_key
+	if view_model.get_focus_view(&"P-B")["device_id"] != "P-B":
+		return "technician focus did not retain stable P-B ID"
+	return ""
+
+
+func _test_role_specific_bearing_symptoms() -> String:
+	var simulation := _create_simulation()
+	simulation.debug_set_component_condition(&"P-B", 0.4)
+	simulation.set_requested_load(1.0)
+	SimulationClock.new(simulation).run_ticks(20)
+	var operator_view_model := OperatorViewModel.new(simulation)
+	operator_view_model.refresh()
+	var operator_view := operator_view_model.get_view()
+	var symptom_alarm := _find_alarm(operator_view["alarms"], "P-B-CURRENT-HIGH", true)
+	if symptom_alarm.is_empty():
+		return "operator did not receive the global P-B current symptom"
+	var technician_view_model := TechnicianViewModel.new(simulation)
+	var inspection := technician_view_model.perform_action(&"P-B", &"inspect")
+	var local_text := String(inspection["feedback"])
+	if "vibration" not in local_text.to_lower() and "mechanical" not in local_text.to_lower():
+		return "technician inspection did not add a local mechanical symptom"
+	if "BEARING" in String(symptom_alarm["message_key"]):
+		return "operator alarm diagnosed the hidden bearing cause"
+	return ""
+
+
+func _test_shared_device_ids() -> String:
+	var simulation := _create_simulation()
+	var expected_ids: Array[String] = []
+	for device_id in simulation.get_device_ids():
+		expected_ids.append(str(device_id))
+	expected_ids.sort()
+
+	var level_scene := load("res://levels/local_slice.tscn") as PackedScene
+	if level_scene == null:
+		return "local slice scene could not be loaded"
+	var level := level_scene.instantiate()
+	var presenter_ids: Array[String] = []
+	_collect_presenter_ids(level, presenter_ids)
+	level.free()
+	presenter_ids.sort()
+	if presenter_ids != expected_ids:
+		return "world presenter IDs %s did not match model IDs %s" % [presenter_ids, expected_ids]
+
+	var snapshot := simulation.create_snapshot()
+	var technician_view_model := TechnicianViewModel.new(simulation)
+	for device_id in expected_ids:
+		if not snapshot.components.has(device_id):
+			return "debug snapshot is missing %s" % device_id
+		var prompt := technician_view_model.get_focus_view(StringName(device_id))
+		if prompt.is_empty() or prompt["device_id"] != device_id:
+			return "interaction prompt changed device ID %s" % device_id
+	var operator_equipment: Dictionary = simulation.create_operator_snapshot()["equipment"]
+	for operator_device_id in ["P-A", "P-B", "V-A", "V-B", "BR-A"]:
+		if not operator_equipment.has(operator_device_id):
+			return "operator telemetry is missing relevant ID %s" % operator_device_id
+	return ""
+
+
+func _test_field_action_flow() -> String:
+	var simulation := _create_simulation()
+	var clock := SimulationClock.new(simulation)
+	simulation.set_requested_load(0.8)
+	clock.run_ticks(120)
+	var operator_view_model := OperatorViewModel.new(simulation)
+	operator_view_model.refresh()
+	var flow_before: float = operator_view_model.get_view()["coolant_flow_units_per_second"]
+	var technician_view_model := TechnicianViewModel.new(simulation)
+	var command := technician_view_model.perform_action(&"P-B", &"stop")
+	if not command["accepted"]:
+		return "technician P-B stop command was rejected"
+	clock.run_ticks(100)
+	operator_view_model.refresh()
+	var snapshot := simulation.create_snapshot()
+	var flow_after: float = operator_view_model.get_view()["coolant_flow_units_per_second"]
+	if snapshot.components["P-B"]["enabled"]:
+		return "field command did not change authoritative P-B state"
+	if not flow_after < flow_before * 0.75:
+		return "P-B stop did not propagate through flow to operator telemetry"
+	if not snapshot.tick == 220:
+		return "field action used a different or reset simulation"
+	return ""
+
+
+func _test_lying_sensor_role_split() -> String:
+	var simulation := _create_simulation()
+	if not simulation.debug_set_valve_mismatch(&"V-A", 0.0, 1.0):
+		return "V-A mismatch setup was rejected"
+	SimulationClock.new(simulation).run_ticks(2)
+	var operator_view_model := OperatorViewModel.new(simulation)
+	operator_view_model.refresh()
+	var operator_valve: Dictionary = operator_view_model.get_view()["equipment"]["V-A"]
+	var technician_view_model := TechnicianViewModel.new(simulation)
+	var inspection := technician_view_model.perform_action(&"V-A", &"inspect")
+	if operator_valve["reported_position_state"] != "OPEN":
+		return "operator did not see the frozen reported OPEN state"
+	if inspection["result"]["physical_state"] != "CLOSED":
+		return "technician did not see the physical CLOSED state"
+	if _find_forbidden_key(operator_view_model.get_view(), ["actual_position"]) != "":
+		return "operator could directly reveal the actual valve position"
+	return ""
+
+
+func _test_operator_view_model_acknowledge() -> String:
+	var simulation := _create_simulation()
+	simulation.debug_set_component_condition(&"P-B", 0.4)
+	simulation.set_requested_load(1.0)
+	SimulationClock.new(simulation).run_ticks(20)
+	var view_model := OperatorViewModel.new(simulation)
+	view_model.refresh()
+	var alarm := _find_alarm(view_model.get_view()["alarms"], "P-B-CURRENT-HIGH", true)
+	if alarm.is_empty():
+		return "test setup did not activate a P-B symptom alarm"
+	var condition_before: float = simulation.create_snapshot().components["P-B"]["condition"]
+	if not view_model.request_acknowledge(StringName(alarm["alarm_instance_id"])):
+		return "operator view model acknowledge was rejected"
+	view_model.refresh()
+	var acknowledged := _find_alarm(view_model.get_view()["alarms"], "P-B-CURRENT-HIGH", true)
+	if acknowledged.is_empty() or not acknowledged["acknowledged"]:
+		return "operator view did not update acknowledge state"
+	if not _is_close(simulation.create_snapshot().components["P-B"]["condition"], condition_before):
+		return "operator acknowledge changed physical P-B condition"
+	return ""
+
+
+func _test_service_prerequisites_and_result() -> String:
+	var simulation := _create_simulation()
+	var clock := SimulationClock.new(simulation)
+	simulation.debug_set_component_condition(&"P-B", 0.4)
+	simulation.set_requested_load(0.7)
+	clock.run_ticks(40)
+	var degraded_flow: float = simulation.create_snapshot().components["P-B"]["effective_flow_units_per_second"]
+	var technician_view_model := TechnicianViewModel.new(simulation)
+	var rejected := technician_view_model.perform_action(&"P-B", &"service_bearing")
+	if rejected["accepted"] or rejected["reason"] != "PUMP_MUST_BE_STOPPED":
+		return "P-B service did not reject the running pump prerequisite"
+	if not technician_view_model.perform_action(&"P-B", &"stop")["accepted"]:
+		return "P-B stop prerequisite command failed"
+	var condition_before: float = simulation.create_snapshot().components["P-B"]["condition"]
+	var accepted := technician_view_model.perform_action(&"P-B", &"service_bearing")
+	if not accepted["accepted"]:
+		return "P-B service was rejected after the pump stopped"
+	var service_focus := technician_view_model.get_focus_view(&"P-B")
+	if not service_focus.has("local_status") or "SERVICE IN PROGRESS" not in service_focus["local_status"]:
+		return "Technician focus did not expose local timed-service progress"
+	for action in service_focus["actions"]:
+		if action["action_id"] == "start":
+			return "Technician focus offered restart while service was active"
+	if technician_view_model.perform_action(&"P-B", &"service_bearing")["reason"] != "SERVICE_IN_PROGRESS":
+		return "duplicate P-B service did not report SERVICE_IN_PROGRESS"
+	var service_ticks := ceili(
+		simulation.get_tuning().bearing_failure_definition.service_duration_seconds
+		/ simulation.get_tuning().simulation_step_seconds
+	) + 1
+	clock.run_ticks(service_ticks)
+	var serviced_snapshot := simulation.create_snapshot()
+	if not float(serviced_snapshot.components["P-B"]["condition"]) > condition_before:
+		return "completed service did not improve authoritative P-B condition"
+	if serviced_snapshot.bearing_failure["service_active"]:
+		return "completed service remained active"
+	if serviced_snapshot.bearing_failure["completed_service_count"] != 1:
+		return "completed service was not recorded exactly once"
+	if not technician_view_model.perform_action(&"P-B", &"start")["accepted"]:
+		return "P-B could not restart after service"
+	clock.run_ticks(40)
+	var restored_flow: float = simulation.create_snapshot().components["P-B"]["effective_flow_units_per_second"]
+	if not restored_flow > degraded_flow:
+		return "service condition improvement did not restore P-B performance"
+	return ""
+
+
 func _run_bearing_choice(choice: String) -> PlantSnapshot:
 	var simulation := _create_simulation()
 	var clock := SimulationClock.new(simulation)
@@ -739,6 +975,29 @@ func _find_alarm(history: Array[Dictionary], rule_id: String, active_only: bool)
 		if alarm["alarm_rule_id"] == rule_id and (not active_only or alarm["active"]):
 			return alarm
 	return {}
+
+
+func _find_forbidden_key(value: Variant, forbidden_keys: Array[String]) -> String:
+	if value is Dictionary:
+		for key in value:
+			if str(key) in forbidden_keys:
+				return str(key)
+			var nested_key := _find_forbidden_key(value[key], forbidden_keys)
+			if not nested_key.is_empty():
+				return nested_key
+	elif value is Array:
+		for item in value:
+			var nested_key := _find_forbidden_key(item, forbidden_keys)
+			if not nested_key.is_empty():
+				return nested_key
+	return ""
+
+
+func _collect_presenter_ids(node: Node, result: Array[String]) -> void:
+	if node is WorldDevicePresenter:
+		result.append(str((node as WorldDevicePresenter).device_id))
+	for child in node.get_children():
+		_collect_presenter_ids(child, result)
 
 
 func _run_soak_configuration(configuration: Dictionary) -> String:
