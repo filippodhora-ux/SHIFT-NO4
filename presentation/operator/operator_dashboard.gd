@@ -17,6 +17,7 @@ extends Control
 @onready var _alarm_list: ItemList = %AlarmList
 @onready var _alarm_history_label: Label = %AlarmHistory
 @onready var _acknowledge_button: Button = %AcknowledgeButton
+@onready var _end_shift_button: Button = %EndShiftButton
 
 var _view_model: OperatorViewModel
 var _visible_alarm_ids: Array[StringName] = []
@@ -27,6 +28,7 @@ func _ready() -> void:
 	_load_slider.value_changed.connect(_on_load_value_changed)
 	_load_slider.drag_ended.connect(_on_load_drag_ended)
 	_acknowledge_button.pressed.connect(_on_acknowledge_pressed)
+	_end_shift_button.pressed.connect(_on_end_shift_pressed)
 
 
 func bind(view_model: OperatorViewModel) -> void:
@@ -43,6 +45,8 @@ func refresh_from_authority() -> void:
 		return
 	_view_model.refresh()
 	var view := _view_model.get_view()
+	if view.is_empty():
+		return
 	_updating_slider = true
 	_load_slider.value = float(view["requested_load"])
 	_updating_slider = false
@@ -86,6 +90,11 @@ func _on_acknowledge_pressed() -> void:
 	var selected_index := selected[0] if not selected.is_empty() else 0
 	_view_model.request_acknowledge(_visible_alarm_ids[selected_index])
 	refresh_from_authority()
+
+
+func _on_end_shift_pressed() -> void:
+	if _view_model != null:
+		_view_model.request_end_shift()
 
 
 func _refresh_alarms(alarms: Array) -> void:

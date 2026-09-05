@@ -11,6 +11,7 @@ extends Node3D
 @onready var _state_label: Label3D = %StateLabel
 
 var _simulation: PlantSimulation
+var _snapshot_store: RoleSnapshotStore
 var _last_state_key: String = ""
 
 
@@ -19,8 +20,12 @@ func _ready() -> void:
 	_id_label.text = "%s\n%s" % [device_id, display_name]
 
 
-func bind(simulation: PlantSimulation) -> void:
-	_simulation = simulation
+func bind(source: Variant) -> void:
+	assert(source is PlantSimulation or source is RoleSnapshotStore, "WorldDevicePresenter requires a simulation or role snapshot store")
+	if source is PlantSimulation:
+		_simulation = source as PlantSimulation
+	else:
+		_snapshot_store = source as RoleSnapshotStore
 	refresh_from_authority()
 
 
@@ -29,9 +34,9 @@ func get_device_id() -> StringName:
 
 
 func refresh_from_authority() -> void:
-	if _simulation == null:
+	if _simulation == null and _snapshot_store == null:
 		return
-	var view := _simulation.create_technician_device_view(device_id)
+	var view := _device_view()
 	if view.is_empty():
 		_state_label.text = "UNBOUND ID"
 		_set_body_color(Color(0.75, 0.15, 0.15))
@@ -49,9 +54,11 @@ func refresh_from_authority() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _simulation == null or device_type != "PUMP":
+	if (_simulation == null and _snapshot_store == null) or device_type != "PUMP":
 		return
-	var view := _simulation.create_technician_device_view(device_id)
+	var view := _device_view()
+	if view.is_empty():
+		return
 	var vibration := String(view.get("vibration", "NORMAL"))
 	var amplitude := 0.0
 	var frequency := 0.0
@@ -126,3 +133,8 @@ func _set_body_color(color: Color) -> void:
 	material.roughness = 0.6
 	_body.material_override = material
 
+
+func _device_view() -> Dictionary:
+	if _simulation != null:
+		return _simulation.create_technician_device_view(device_id)
+	return _snapshot_store.get_technician_device_view(device_id)

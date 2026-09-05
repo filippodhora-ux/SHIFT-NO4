@@ -1,0 +1,117 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://presentation/menus/dev_lobby.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_lobby"]
+bg_color = Color(0.025, 0.04, 0.033, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.44, 0.63, 0.32, 1)
+
+[node name="DevLobby" type="PanelContainer"]
+offset_left = 330.0
+offset_top = 90.0
+offset_right = 950.0
+offset_bottom = 630.0
+theme_override_styles/panel = SubResource("StyleBox_lobby")
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Rows" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.92, 0.62, 1)
+theme_override_font_sizes/font_size = 30
+text = "SHIFT №4 — M4 DEV LOBBY"
+horizontal_alignment = 1
+
+[node name="Scope" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.78, 0.68, 1)
+text = "One host + one LAN/localhost client. No reconnect or matchmaking."
+horizontal_alignment = 1
+
+[node name="Connection" type="HBoxContainer" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Address" type="LineEdit" parent="Margin/Rows/Connection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+text = "127.0.0.1"
+placeholder_text = "Host IP"
+
+[node name="Port" type="SpinBox" parent="Margin/Rows/Connection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+min_value = 1024.0
+max_value = 65535.0
+value = 7004.0
+
+[node name="HostButton" type="Button" parent="Margin/Rows/Connection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "HOST"
+
+[node name="JoinButton" type="Button" parent="Margin/Rows/Connection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "JOIN"
+
+[node name="Status" type="Label" parent="Margin/Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.76, 0.31, 1)
+text = "OFFLINE — Choose Host or Join."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Crew" type="Label" parent="Margin/Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+text = "CREW\nWaiting for host..."
+horizontal_alignment = 1
+
+[node name="RoleHeading" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "CHOOSE ONE UNIQUE ROLE"
+horizontal_alignment = 1
+
+[node name="Roles" type="HBoxContainer" parent="Margin/Rows"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="OperatorButton" type="Button" parent="Margin/Rows/Roles"]
+unique_name_in_owner = true
+layout_mode = 2
+disabled = true
+text = "OPERATOR"
+
+[node name="TechnicianButton" type="Button" parent="Margin/Rows/Roles"]
+unique_name_in_owner = true
+layout_mode = 2
+disabled = true
+text = "TECHNICIAN"
+
+[node name="ReadyButton" type="CheckButton" parent="Margin/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+disabled = true
+text = "READY — session starts after both players confirm"

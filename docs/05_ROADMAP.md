@@ -12,7 +12,7 @@ Stavy: `NOT STARTED`, `IN PROGRESS`, `BLOCKED`, `DONE`.
 | M1 | Headless plant simulation | DONE |
 | M2 | Equipment, sensors a referenční failure | DONE |
 | M3 | Lokální playable slice | DONE |
-| M4 | Dvouhráčový host/client | NOT STARTED |
+| M4 | Dvouhráčový host/client | DONE |
 | M5 | Dvě směny, persistence a ekonomika | NOT STARTED |
 | M6 | MVP validace a balance | NOT STARTED |
 | M7 | Rozhodnutí po MVP | NOT STARTED |
@@ -97,7 +97,7 @@ Ověřit `load → wear → performance → symptoms` a oddělení skutečné a 
 
 ## 5. M3 — Lokální playable slice
 
-Stav: `DONE` (2026-09-05). Lokální renderer smoke, 32 headless testů a role-specific scénář ověřují exit kritéria; M4 zůstává `NOT STARTED`.
+Stav: `DONE` (2026-09-05). Lokální renderer smoke, 32 headless testů a role-specific scénář ověřují exit kritéria; navazující M4 byl dokončen samostatným síťovým řezem.
 
 ### Cíl
 
@@ -124,6 +124,8 @@ Na jednom počítači ověřit role-specific UX, fyzickou cestu a celý incident
 - projdou AC-013 až AC-018 a příslušný manuální smoke test.
 
 ## 6. M4 — Dvouhráčový host/client
+
+Stav: `DONE` (2026-09-05). Dvouprocesový ENet smoke, 17 síťových testů, 32 regresních M1–M3 testů a main-scene host/client smoke ověřují exit kritéria. M5 zůstává `NOT STARTED`.
 
 ### Cíl
 

@@ -9,6 +9,7 @@ extends CharacterBody3D
 @onready var _hud: Control = %TechnicianHud
 @onready var _prompt_label: Label = %InteractionPrompt
 @onready var _feedback_label: Label = %FieldFeedback
+@onready var _remote_body: MeshInstance3D = %RemoteBody
 
 var _view_model: TechnicianViewModel
 var _active: bool = false
@@ -33,9 +34,14 @@ func set_role_active(value: bool) -> void:
 	_camera.current = value
 	velocity = Vector3.ZERO
 	if value:
+		_remote_body.visible = false
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	else:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func set_remote_avatar_visible(value: bool) -> void:
+	_remote_body.visible = value and not _active
 
 
 func teleport_to_start() -> void:

@@ -17,7 +17,7 @@ func _init(simulation: PlantSimulation) -> void:
 	_max_catch_up_steps = simulation.get_tuning().max_catch_up_steps
 
 
-func advance(real_delta_seconds: float) -> int:
+func advance(real_delta_seconds: float, before_step: Callable = Callable()) -> int:
 	if is_nan(real_delta_seconds) or is_inf(real_delta_seconds) or real_delta_seconds < 0.0:
 		push_error("real_delta_seconds must be finite and non-negative")
 		return 0
@@ -29,6 +29,8 @@ func advance(real_delta_seconds: float) -> int:
 		_accumulator_seconds + ACCUMULATOR_EPSILON_SECONDS >= _fixed_step_seconds
 		and completed_steps < _max_catch_up_steps
 	):
+		if before_step.is_valid():
+			before_step.call()
 		step_once()
 		_accumulator_seconds -= _fixed_step_seconds
 		completed_steps += 1
@@ -60,4 +62,3 @@ func reset() -> void:
 
 func get_pending_seconds() -> float:
 	return _accumulator_seconds
-

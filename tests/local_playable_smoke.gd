@@ -12,6 +12,7 @@ func _initialize() -> void:
 
 func _run_smoke() -> void:
 	var local_slice := MAIN_SCENE.instantiate() as LocalSliceRoot
+	local_slice.local_dev_override = true
 	get_root().add_child(local_slice)
 	await process_frame
 	await process_frame

@@ -14,8 +14,8 @@ border_color = Color(0.95, 0.25, 0.18, 1)
 visible = false
 offset_left = 20.0
 offset_top = 72.0
-offset_right = 610.0
-offset_bottom = 300.0
+offset_right = 690.0
+offset_bottom = 345.0
 theme_override_styles/panel = SubResource("StyleBox_debug")
 script = ExtResource("1_script")
 

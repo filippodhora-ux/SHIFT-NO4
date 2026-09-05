@@ -35,3 +35,14 @@ Projekt je navržen pro Godot 4.x a typed GDScript. První ověřovací verze je
 ## Jak dokumentaci používat
 
 Před implementací konkrétního milníku přečti GDD, technický návrh, MVP specifikaci a příslušnou část roadmapy. Potom spusť coding agenta s [master promptem](docs/CODEX_MASTER_PROMPT.md) a nahraď blok `AKTUÁLNÍ ÚKOL` jediným vybraným milníkem. Nespouštěj celý vývoj jedním promptem.
+
+## M4 rychlé spuštění
+
+Výchozí main scéna otevře malou ENet dev lobby. Host zvolí `HOST`, druhý proces se připojí přes localhost/LAN IP, každý obsadí jinou roli a oba potvrdí `READY`. Alternativně lze role a ready nastavit z příkazové řádky:
+
+```powershell
+& $godotGui --path $projectPath -- --host --port=7004 --role=OPERATOR --ready
+& $godotGui --path $projectPath -- --join=127.0.0.1 --port=7004 --role=TECHNICIAN --ready
+```
+
+Úplné ovládání, automatické testy a dvouprocesový smoke jsou v [development dokumentaci](docs/07_DEVELOPMENT.md#m4--dvouhráčový-hostclient).

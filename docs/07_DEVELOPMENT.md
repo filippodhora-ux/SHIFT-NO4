@@ -54,8 +54,10 @@ Godot v headless editor režimu načte projekt, importuje zdroje, zkontroluje pr
 
 Přímé spuštění main scény:
 
+Historický M3 lokální dev režim se po dokončení M4 spouští pouze explicitním flagem; výchozí main scéna nyní správně otevírá síťovou lobby:
+
 ```powershell
-& $godotGui --path $projectPath
+& $godotGui --path $projectPath -- --local-dev
 ```
 
 Otevření projektu v editoru:
@@ -437,4 +439,96 @@ Očekávaný souhrn: `[SMOKE] PASS local role swap, lying sensor, inspect, stop,
 | AC-017 | PASS | `world_model_prompt_operator_and_debug_share_device_ids` kontroluje model, scénu, prompt, Operator relevantní IDs a debug snapshot. PG-A záměrně není v Operator role payloadu. |
 | AC-018 | PASS | `technician_stop_updates_authority_flow_and_operator_view`, service integration a renderer smoke. |
 
-Starších 24 M1/M2 testů zůstává PASS. M3 známé omezení je záměrně placeholder vizuál bez finálního audia; význam pumpy je současně vyjádřen textem, stavem, barvou a vibrací. Další jediný milník je M4 — dvouhráčový host/client; nebyl zahájen.
+Starších 24 M1/M2 testů zůstává PASS. M3 známé omezení je záměrně placeholder vizuál bez finálního audia; význam pumpy je současně vyjádřen textem, stavem, barvou a vibrací. Po dokončení M4 zůstává tento režim pouze explicitním regresním/dev nástrojem.
+
+## M4 — dvouhráčový host/client
+
+Roadmap status: `DONE` (2026-09-05). M4 převádí jednu lokální M3 autoritu na jeden ENet host a jeden klientský proces. Neobsahuje persistence, ekonomiku, maintenance ani jinou práci M5.
+
+### Vlastnictví a session
+
+- `NetworkSessionManager` vlastní ENet peer, reliable RPC transport, lobby replikaci a lokální `RoleSnapshotStore`.
+- Pouze host vytváří `AuthorityGateway`; gateway vytvoří jedinou `PlantSimulation` a `SimulationClock` až po připojení dvou peerů, unikátní volbě `OPERATOR` + `TECHNICIAN` a obou stavech READY.
+- Klient nevytváří `PlantSimulation`, `EquipmentSystem`, wear/failure runtime ani alarmový systém. Jeho view modely čtou pouze přijatý role payload.
+- Odpojení během směny přejde do `DISCONNECTED`, zastaví tick a vyčistí čekající end-shift potvrzení. Reconnect a host migration nejsou podporované.
+
+### Command lifecycle a ordering
+
+Klient posílá intent envelope s poli `command_id`, `actor_peer_id`, `actor_role`, `target_device_id`, `action_id`, `parameters`, `requested_tick` a volitelným `target_revision`. Autorita při přijetí přidělí `server_received_tick` a monotónní `server_sequence`. Commandy jednoho autoritativního kroku se aplikují stabilně podle:
+
+```text
+server_received_tick → server_sequence
+```
+
+`command_id` je v session idempotency klíč. Gateway před zařazením a znovu před aplikací ověřuje běžící směnu, peer, přidělenou roli, target/action allowlist, případnou component revision a Technician dosah. Zařízení poté ověří vlastní prerequisite, například zastavenou P-B pro `service_bearing`. Rejection vrací reason code a nemění gameplay/state revision.
+
+Operator síťové commandy: `set_requested_load`, `acknowledge_alarm`, `request_end_shift`. Technician síťové commandy: `inspect`, start/stop P-A/P-B, fyzické V-A/V-B, BR-A, lokální PG-A, P-B service a `confirm_end_shift`.
+
+### Snapshoty a informační hranice
+
+Host sestavuje dva samostatné serializované payloady. `OperatorSnapshot` obsahuje reported procesní telemetrii, MW/MWh, reported equipment, alarmy, session a player presentation; neobsahuje condition, wear, failure ID/fázi ani actual hodnotu lying senzoru. `TechnicianSnapshot` obsahuje session, player presentation a jen kvalitativní/lokální world data zařízení ve field visibility rozsahu; neobsahuje MW/MWh, plant stress, celý dashboard ani globální alarmy. Přesný inspect výsledek se posílá spolehlivě pouze žádajícímu peeru v command resultu.
+
+Snapshot rate je data-driven (výchozí `0.1 s`) a payload nese monotónní `revision`. `RoleSnapshotStore` přijme pouze vyšší revision. Důležité command výsledky, lobby, end-shift a role snapshoty používají reliable RPC; pozdní starší snapshot nemůže přepsat novější stav.
+
+Lying-sensor síťový scénář zachovává rozdělení: host drží `V-A actual CLOSED / reported OPEN`, Operator payload obsahuje pouze `OPEN` a Technician u V-A dostane `CLOSED`.
+
+### Pohyb a role UI
+
+Technician kamera a `CharacterBody3D` běží lokálně pro responzivní LAN ovládání. Pozice se periodicky posílá hostu; host kontroluje monotónní client tick, mapové bounds a maximální přesun podle svého simulačního ticku. Pouze přijatá host pozice se používá pro interaction range a replikuje se jako jednoduchý druhý avatar. Rollback, lag compensation a animation networking nejsou v M4.
+
+F1/F2 během síťové směny roli nepřepínají. Jsou povolené jen s `--local-dev` nebo testovacím `local_dev_override`. `F3` zobrazuje oddělený network debug; úplný plant stav se zobrazí pouze hostu. Host-only debug `F4/F5` urychluje interní incident a lying-sensor kontrolu.
+
+### Lobby a manuální spuštění
+
+Nejjednodušší je spustit dvě GUI instance a použít lobby `HOST` / adresa + `JOIN`, volbu role a READY. Stejný tok lze spustit přímo:
+
+```powershell
+# Process A — Operator host
+& $godotGui --path $projectPath -- --host --port=7004 --role=OPERATOR --ready
+
+# Process B — Technician client
+& $godotGui --path $projectPath -- --join=127.0.0.1 --port=7004 --role=TECHNICIAN --ready
+```
+
+Operator nastavuje load a tlačítkem `REQUEST END SHIFT` zahájí konec. Technician používá M3 field ovládání a klávesou `G` potvrzuje čekající end shift. Dosažené MWh směnu automaticky neukončují.
+
+### Automatické ověření
+
+M1–M3 regrese a čisté M4 authority/replication testy:
+
+```powershell
+& $godotConsole --headless --editor --path $projectPath --quit
+& $godotConsole --headless --path $projectPath --script 'res://tests/run_tests.gd'
+& $godotConsole --headless --path $projectPath --script 'res://tests/network_tests.gd'
+```
+
+Ověřené souhrny: `[TEST] SUMMARY passed=32 failed=0` a `[NET-TEST] SUMMARY passed=17 failed=0`.
+
+Reprodukovatelný skutečný dvouprocesový smoke se spouští ve dvou PowerShell oknech, host jako první:
+
+```powershell
+# Process A
+& $godotConsole --headless --path $projectPath --script 'res://tests/two_process_network_smoke.gd' -- --mode=host --port=17008
+
+# Process B
+& $godotConsole --headless --path $projectPath --script 'res://tests/two_process_network_smoke.gd' -- --mode=client --port=17008
+```
+
+Finální ověřený běh skončil pro oba procesy exit code `0`: host i klient `tick=60`, `snapshot_revision=73`. Smoke prochází connection, unikátní role/ready, shared shift, network load, P-B alarm a lokální inspect, out-of-range a role rejection, server-validovaný field přesun, lying V-A split, duplicitní P-B stop aplikovaný jednou, flow cascade do Operator payloadu, coordinated end shift a čisté uzavření peerů.
+
+### M4 akceptace
+
+| ID | Stav | Důkaz |
+|---|---|---|
+| AC-013 | PASS | `role_payloads_are_filtered_before_serialization`; zachovaný M3 Operator view test a renderer smoke. |
+| AC-014 | PASS | Technician serialized payload test + role-striktní vytvoření pouze Technician view modelu. |
+| AC-015 | PASS | Dvouprocesový smoke ověřuje P-B Operator alarm i lokální vibration inspect. |
+| AC-016 | PASS | Zachované alarm testy; network acknowledge používá stejnou host autoritu. |
+| AC-017 | PASS | Zachovaný device-ID content test; commandy, payloady a presentery používají stejné ID. |
+| AC-018 | PASS | Zachovaný M3 integration test + síťový `technician_stop_cascades_to_operator_snapshot`. |
+| AC-019 | PASS | Dvě ENet instance zvolily unikátní role, READY a vstoupily do stejné směny. |
+| AC-020 | PASS | `host_is_only_authoritative_simulation_owner` + dvouprocesový klient bez gateway/simulace; host tick/MWh/wear postupují. |
+| AC-021 | PASS | Range, role, movement, stale revision, duplicate a service prerequisite rejection testy. |
+| AC-022 | PASS | `stale_snapshot_cannot_overwrite_newer_revision`, authoritative cascade a dvouprocesový shodný end stav. |
+
+Známá omezení M4 jsou záměrná: jeden host + jeden klient, localhost/LAN, reliable 10Hz payloady, jednoduchá validace pohybu bez predikčního frameworku, žádný reconnect/host migration a pouze konečný stav `ENDED` bez debriefu. Jediný další milník je M5 — dvě směny, persistence a ekonomika; nebyl zahájen.

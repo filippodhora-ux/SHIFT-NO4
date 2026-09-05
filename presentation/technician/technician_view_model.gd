@@ -2,12 +2,18 @@ class_name TechnicianViewModel
 extends RefCounted
 
 var _simulation: PlantSimulation
+var _snapshot_store: RoleSnapshotStore
+var _command_sender: Callable
 var _last_feedback: String = "Field channel ready."
 
 
-func _init(simulation: PlantSimulation) -> void:
-	assert(simulation != null, "TechnicianViewModel requires PlantSimulation")
-	_simulation = simulation
+func _init(source: Variant, command_sender: Callable = Callable()) -> void:
+	assert(source is PlantSimulation or source is RoleSnapshotStore, "TechnicianViewModel requires a simulation or role snapshot store")
+	if source is PlantSimulation:
+		_simulation = source as PlantSimulation
+	else:
+		_snapshot_store = source as RoleSnapshotStore
+	_command_sender = command_sender
 
 
 func create_hud_view() -> Dictionary:
@@ -18,7 +24,11 @@ func create_hud_view() -> Dictionary:
 
 
 func get_focus_view(device_id: StringName) -> Dictionary:
-	var device_view := _simulation.create_technician_device_view(device_id)
+	var device_view := (
+		_simulation.create_technician_device_view(device_id)
+		if _simulation != null
+		else _snapshot_store.get_technician_device_view(device_id)
+	)
 	if device_view.is_empty():
 		return {}
 	var focus_view := {
@@ -46,7 +56,15 @@ func perform_action(
 	action_id: StringName,
 	parameters: Dictionary = {}
 ) -> Dictionary:
-	var command_result := _simulation.execute_command(device_id, action_id, parameters)
+	var command_result: Dictionary
+	if _simulation != null:
+		command_result = _simulation.execute_command(device_id, action_id, parameters)
+	else:
+		command_result = _command_sender.call(device_id, action_id, parameters)
+	if bool(command_result.get("queued", false)):
+		_last_feedback = "%s command sent to host." % device_id
+		command_result["feedback"] = _last_feedback
+		return command_result
 	if not command_result["accepted"]:
 		_last_feedback = _reason_text(String(command_result["reason"]))
 		command_result["feedback"] = _last_feedback
@@ -61,6 +79,21 @@ func perform_action(
 		_last_feedback = _accepted_text(device_id, action_id)
 	command_result["feedback"] = _last_feedback
 	return command_result
+
+
+func apply_command_result(command_result: Dictionary) -> void:
+	if not bool(command_result.get("accepted", false)):
+		_last_feedback = _reason_text(String(command_result.get("reason", "REJECTED")))
+		return
+	var action_id := StringName(command_result.get("action_id", ""))
+	var device_id := StringName(command_result.get("target_device_id", ""))
+	if action_id == &"inspect":
+		var inspection: Dictionary = command_result.get("result", {})
+		_last_feedback = String(inspection.get("inspection_text", "Inspection complete."))
+		if inspection.has("sound_caption"):
+			_last_feedback += "  %s" % inspection["sound_caption"]
+	else:
+		_last_feedback = _accepted_text(device_id, action_id)
 
 
 func _available_actions(device_id: StringName, device_view: Dictionary) -> Array[Dictionary]:
@@ -135,6 +168,14 @@ func _reason_text(reason: String) -> String:
 			return "Service rejected: stop P-B first."
 		"SERVICE_IN_PROGRESS":
 			return "Service is already in progress."
+		"OUT_OF_RANGE":
+			return "Action rejected by host: device is out of physical range."
+		"ROLE_NOT_AUTHORIZED":
+			return "Action rejected by host: role is not authorized."
+		"STALE_TARGET_REVISION":
+			return "Action rejected by host: device state changed; inspect again."
+		"DUPLICATE_COMMAND_ID":
+			return "Duplicate command ignored by host."
 		"NO_SERVICE_NEEDED":
 			return "Service rejected: no measurable service need."
 		"UNSUPPORTED_ACTION":
